@@ -110,6 +110,7 @@ def find_segments(
     )
 
     print("Created and stored lookup tables in %.3fs" % (time.time() - start))
+    graph_provider.client.close()
 
 
 def segment(nodes, edges, adj_scores, lr_scores, edges_collection, out_dir):
@@ -154,12 +155,13 @@ def segment(nodes, edges, adj_scores, lr_scores, edges_collection, out_dir):
 
 if __name__ == "__main__":
     start = time.time()
+    sample = "2023-05-24/plasmodesmata_affs_lsds/0"
     find_segments(
-        sample_name="sample",
-        db_host="mongodb://{user}:{password}@{host}:{port}",
-        db_name="db",
-        fragments_file="/path/to/data.zarr",
-        fragments_dataset="fragments",
-        edges_collection=f"sample_edges_mwatershed",
+        sample_name=sample,
+        db_host="mongodb://microdosingAdmin:Cu2CO3OH2@funke-mongodb2.int.janelia.org:27017",
+        db_name="cellmap_postprocessing_ackermand",
+        fragments_file="/nrs/cellmap/ackermand/predictions/jrc_22ak351-leaf-3m/jrc_22ak351-leaf-3m.n5",
+        fragments_dataset=f"processed/{sample}/fragments",
+        edges_collection=f"{sample}_edges_mwatershed",
     )
     print("Took %.3f seconds to find segments and store LUTs" % (time.time() - start))

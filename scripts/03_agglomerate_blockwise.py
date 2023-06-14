@@ -177,7 +177,8 @@ def start_worker(
 
     logging.info("Running block with config %s..." % config_file)
 
-    worker = "./03_agglomerate_worker.py"
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    worker = f"{dir_path}/03_agglomerate_worker.py"
 
     command = f"python {worker} {config_file}"
 
@@ -193,25 +194,25 @@ def check_block(completed_collection, block):
 
 
 if __name__ == "__main__":
-    voxel_size = Coordinate(4, 4, 4)
-    block_size = Coordinate(256, 256, 256) * voxel_size
+    voxel_size = Coordinate(8, 8, 8)
+    block_size = Coordinate(128, 128, 128) * voxel_size
     context = Coordinate(16, 16, 16) * voxel_size
     start = time.time()
-
+    sample = "2023-05-24/plasmodesmata_affs_lsds/0"
     agglomerate(
-        sample_name="sample",
-        affs_file="/path/to/data.zarr",
-        affs_dataset="affinities",
-        fragments_file="/path/to/data.zarr",
-        fragments_dataset="fragments",
+        sample_name=sample,
+        affs_file="/nrs/cellmap/ackermand/predictions/jrc_22ak351-leaf-3m/jrc_22ak351-leaf-3m.n5",
+        affs_dataset=f"predictions/{sample}__affs",
+        fragments_file="/nrs/cellmap/ackermand/predictions/jrc_22ak351-leaf-3m/jrc_22ak351-leaf-3m.n5",
+        fragments_dataset=f"processed/{sample}/fragments",
         block_size=tuple(block_size),
         context=tuple(context),
-        db_host="mongodb://{user}:{password}@{host}:{port}",
-        db_name="db",
+        db_host="mongodb://microdosingAdmin:Cu2CO3OH2@funke-mongodb2.int.janelia.org:27017",
+        db_name="cellmap_postprocessing_ackermand",
         num_workers=2,
         merge_function="mwatershed",
         drop=True,
-        billing="billing",
+        billing="cellmap",
     )
 
     end = time.time()

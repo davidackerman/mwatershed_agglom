@@ -43,7 +43,7 @@ def agglomerate_in_block(affs, fragments, rag_provider, block: daisy.Block):
     # logger.debug("fragments num: %d", n)
 
     # convert affs to float32 ndarray with values between 0 and 1
-    offsets = affs.data.attrs["offsets"]
+    offsets = affs.data.attrs["affs_offsets"]
     affs = affs.to_ndarray()
     if affs.dtype == np.uint8:
         affs = affs.astype(np.float32) / 255.0
