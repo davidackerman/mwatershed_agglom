@@ -15,7 +15,10 @@ import json
 import sys
 import time
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
 
@@ -38,9 +41,12 @@ def watershed_in_block(
     logger.info("reading affs from %s", block.read_roi)
 
     offsets = affs.data.attrs["affs_offsets"] #offset for offset in affs.data.attrs["affs_offsets"]]
+    start = time.time()
     affs = affs.intersect(block.read_roi)
     affs.materialize()
-
+    stop = time.time()
+    print(("reading",stop-start))
+    start=stop
     if affs.dtype == np.uint8:
         logger.info("Assuming affinities are in [0,255]")
         max_affinity_value = 255.0
@@ -74,19 +80,29 @@ def watershed_in_block(
         affs.data + shift + random_noise + smoothed_affs,
         offsets=offsets,
     )
-
+    print(("agglom",stop-start))
+    start=stop
+    affs_sums = []
+    counts = []
+    
     if filter_fragments > 0:
         average_affs = np.mean(affs.data, axis=0)
 
         filtered_fragments = []
 
-        fragment_ids = np.unique(fragments_data)
+        fragment_ids, fragment_counts = np.unique(fragments_data,return_counts=True)
 
-        for fragment, mean in zip(
-            fragment_ids, measurements.mean(average_affs, fragments_data, fragment_ids)
+        for fragment, mean, affs_sum, count in zip(
+            fragment_ids, 
+            measurements.mean(average_affs, fragments_data, fragment_ids),
+            measurements.sum(average_affs, fragments_data, fragment_ids),
+            fragment_counts
         ):
             if mean < filter_fragments:
                 filtered_fragments.append(fragment)
+            elif fragment > 0:
+                affs_sums.append(affs_sum.item())
+                counts.append(count.item())
 
         filtered_fragments = np.array(filtered_fragments, dtype=fragments_data.dtype)
         replace = np.zeros_like(filtered_fragments)
@@ -106,7 +122,9 @@ def watershed_in_block(
     id_bump = block.block_id[1] * num_voxels_in_block
     logger.info("bumping fragment IDs by %i", id_bump)
     fragments.data[fragments.data > 0] += id_bump
-    fragment_ids = [x for x in np.unique(fragments.data) if x != 0]
+    fragment_ids = np.unique(fragments.data)
+    print(("relabel",stop-start))
+    start=stop
     #fragment_ids = range(1, max_id + 1)
 
     # store fragments
@@ -117,24 +135,29 @@ def watershed_in_block(
         return
 
     # get fragment centers
-    fragment_centers = {
-        fragment: block.write_roi.get_offset() + affs.voxel_size * Coordinate(center)
-        for fragment, center in zip(
+    fragment_data = {
+        fragment: [block.write_roi.get_offset() + affs.voxel_size * Coordinate(center), aff_sum, count]
+        for fragment, center, aff_sum, count in zip(
             fragment_ids,
             measurements.center_of_mass(fragments.data, fragments.data, fragment_ids),
+            affs_sums,
+            counts
         )
         if not np.isnan(center[0])
     }
-
+    print(("centers",stop-start))
+    start=stop
     # store nodes
     rag = rag_provider[block.write_roi]
     rag.add_nodes_from(
         [
-            (node, {"center_z": c[0], "center_y": c[1], "center_x": c[2]})
-            for node, c in fragment_centers.items()
+            (node, {"center_z": d[0][0], "center_y": d[0][1], "center_x": d[0][2]})#, "aff_sum":d[1],"voxel_count":d[2]})
+            for node, d in fragment_data.items()
         ]
     )
     rag.write_nodes(block.write_roi)
+    print(("write",stop-start))
+    start=stop
 
 
 def extract_fragments_worker(input_config):
@@ -184,9 +207,9 @@ def extract_fragments_worker(input_config):
     logger.info("RAG DB opened")
 
     # open block done DB
-    mongo_client = pymongo.MongoClient(db_host)
-    db = mongo_client[db_name]
-    blocks_extracted = db[f"{sample_name}_fragment_blocks_extracted"]
+    # mongo_client = pymongo.MongoClient(db_host)
+    # db = mongo_client[db_name]
+    # blocks_extracted = db[f"{sample_name}_fragment_blocks_extracted"]
 
     client = daisy.Client()
 
@@ -198,7 +221,11 @@ def extract_fragments_worker(input_config):
             if block is None:
                 break
 
-            start = time.time()
+            if mask:
+                should_process_block = np.any(mask.to_ndarray(roi=block.write_roi.snap_to_grid(mask.voxel_size),fill_value=0))
+                if not should_process_block:
+                    continue
+            #start = time.time()
 
             logger.info("block read roi begin: %s", block.read_roi.get_begin())
             logger.info("block read roi shape: %s", block.read_roi.get_shape())
@@ -215,14 +242,14 @@ def extract_fragments_worker(input_config):
                 filter_fragments=filter_fragments,
             )
 
-            document = {
-                "block_id": block.block_id,
-                "read_roi": (block.read_roi.get_begin(), block.read_roi.get_shape()),
-                "write_roi": (block.write_roi.get_begin(), block.write_roi.get_shape()),
-                "start": start,
-                "duration": time.time() - start,
-            }
-            blocks_extracted.insert_one(document)
+            # document = {
+            #     "block_id": block.block_id,
+            #     "read_roi": (block.read_roi.get_begin(), block.read_roi.get_shape()),
+            #     "write_roi": (block.write_roi.get_begin(), block.write_roi.get_shape()),
+            #     "start": start,
+            #     "duration": time.time() - start,
+            # }
+            # blocks_extracted.insert_one(document)
             logger.info(f"releasing block: {block}")
 
 

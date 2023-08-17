@@ -14,7 +14,10 @@ import itertools
 
 from funlib.persistence import open_ds
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
 
@@ -147,13 +150,13 @@ def agglomerate_in_block(affs, fragments, rag_provider, block: daisy.Block):
             adj_weight_v = adjacent_map.get(cantor_id_v, None)
             if adj_weight_u is not None and adj_weight_v is not None:
                 adj_weight = (adj_weight_v + adj_weight_u) / 2
-                adj_weight += 0.5
+                #adj_weight += 0.5
             elif adj_weight_u is not None:
                 adj_weight = adj_weight_u
-                adj_weight += 0.5
+                #adj_weight += 0.5
             elif adj_weight_v is not None:
                 adj_weight = adj_weight_v
-                adj_weight += 0.5
+                #adj_weight += 0.5
             else:
                 adj_weight = None
             lr_weight_u = lr_adjacent_map.get(cantor_id_u, None)
@@ -196,6 +199,11 @@ def agglomerate_worker(input_config):
     db_host = config["db_host"]
     db_name = config["db_name"]
     merge_function = config["merge_function"]
+    if config["mask_file"] is not None:
+        logger.info("Reading mask from %s", config["mask_file"])
+        mask = open_ds(config["mask_file"], config["mask_dataset"], mode="r")
+    else:
+        mask = None
 
     logging.info("Reading affs from %s" % affs_file)
     affs = open_ds(affs_file, affs_dataset, mode="r")
@@ -226,20 +234,23 @@ def agglomerate_worker(input_config):
         with client.acquire_block() as block:
             if block is None:
                 break
-
-            start = time.time()
+            if mask:
+                should_process_block = np.any(mask.to_ndarray(roi=block.write_roi.snap_to_grid(mask.voxel_size),fill_value=0))
+                if not should_process_block:
+                    continue
+            # start = time.time()
 
             agglomerate_in_block(affs, fragments, rag_provider, block)
 
-            document = {
-                "num_cpus": 5,
-                "block_id": block.block_id,
-                "read_roi": (block.read_roi.get_begin(), block.read_roi.get_shape()),
-                "write_roi": (block.write_roi.get_begin(), block.write_roi.get_shape()),
-                "start": start,
-                "duration": time.time() - start,
-            }
-            completed_collection.insert_one(document)
+            # document = {
+            #     "num_cpus": 5,
+            #     "block_id": block.block_id,
+            #     "read_roi": (block.read_roi.get_begin(), block.read_roi.get_shape()),
+            #     "write_roi": (block.write_roi.get_begin(), block.write_roi.get_shape()),
+            #     "start": start,
+            #     "duration": time.time() - start,
+            # }
+            # completed_collection.insert_one(document)
 
 
 if __name__ == "__main__":

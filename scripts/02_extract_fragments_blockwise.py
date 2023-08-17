@@ -10,8 +10,11 @@ import subprocess
 
 from funlib.persistence import open_ds, prepare_ds
 from funlib.geometry import Coordinate
-
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
+#logging.basicConfig(level=logging.INFO)
 
 
 def extract_fragments(
@@ -142,7 +145,7 @@ def extract_fragments(
             num_voxels_in_block,
             billing,
         ),
-        check_function=lambda b: check_block(completed_collection, complete_cache, b),
+        check_function=None,#lambda b: check_block(completed_collection, complete_cache, b),
         num_workers=num_workers,
         read_write_conflict=False,
         fit="shrink",
@@ -199,7 +202,6 @@ def start_worker(
     config_hash = abs(int(hashlib.md5(config_str.encode()).hexdigest(), 16))
 
     config_file = os.path.join(output_basename.parent, "%d.config" % config_hash)
-
     with open(config_file, "w") as f:
         json.dump(config, f)
 
@@ -211,7 +213,7 @@ def start_worker(
     command = f"python {worker} {config_file}"
 
     subprocess.run(
-        ["bsub", "-I", "-P", billing, "-n", "4", "-o", log_out, "-e", log_err, command]
+        ["bsub", "-P",  billing, "-n", "1", "-o", log_out, "-e", log_err, command]
     )
 
 
@@ -230,7 +232,7 @@ if __name__ == "__main__":
     context = Coordinate(16, 16, 16) * voxel_size
     start = time.time()
 
-    sample = "2023-05-24/plasmodesmata_affs_lsds/0"
+    sample = "2023-07-26/plasmodesmata_affs_lsds/0"
     extract_fragments(
         sample_name=sample,
         affs_file="/nrs/cellmap/ackermand/predictions/jrc_22ak351-leaf-3m/jrc_22ak351-leaf-3m.n5",
@@ -241,9 +243,9 @@ if __name__ == "__main__":
         context=tuple(context),
         db_host="mongodb://microdosingAdmin:Cu2CO3OH2@funke-mongodb2.int.janelia.org:27017",
         db_name="cellmap_postprocessing_ackermand",
-        num_workers=50,
-        mask_file=None,
-        mask_dataset=None,
+        num_workers=300,
+        mask_file="/nrs/cellmap/ackermand/cellmap/leaf-gall/prediction_masks.zarr",
+        mask_dataset="jrc_22ak351-leaf-3m",
         filter_fragments=0.5,
         drop=True,
         billing="cellmap",

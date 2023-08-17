@@ -3,10 +3,14 @@ import time
 import os
 import numpy as np
 from funlib.persistence import open_ds, graphs
+from funlib.segment.arrays import replace_values
 
 import mwatershed as mws
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logging.getLogger("funlib.persistence.graphs.shared_graph_provider").setLevel(
     logging.DEBUG
 )
@@ -114,9 +118,8 @@ def find_segments(
 
 
 def segment(nodes, edges, adj_scores, lr_scores, edges_collection, out_dir):
-
-    adj_bias = 0.0
-    lr_bias = -1.0
+    adj_bias = -.4
+    lr_bias = -1
     edges = [
         (adj + adj_bias, u, v)
         for adj, (u, v) in zip(adj_scores, edges)
@@ -134,6 +137,9 @@ def segment(nodes, edges, adj_scores, lr_scores, edges_collection, out_dir):
     edges = [(bool(aff > 0), u, v) for aff, u, v in edges]
     lut = mws.cluster(edges)
     inputs, outputs = zip(*lut)
+    # outputs = np.array(outputs, dtype = np.uint64)
+    # unique_outputs = np.unique(outputs)
+    # outputs = replace_values(outputs, unique_outputs, np.arange(1, len(unique_outputs)+1, 1))
 
     start = time.time()
     print("%.3fs" % (time.time() - start))
@@ -148,14 +154,14 @@ def segment(nodes, edges, adj_scores, lr_scores, edges_collection, out_dir):
 
     out_file = os.path.join(out_dir, lookup)
 
-    np.savez_compressed(out_file, fragment_segment_lut=lut, edges=edges)
+    np.savez_compressed(out_file, fragment_segment_lut=lut.astype(np.uint64), edges=edges)
 
     print("%.3fs" % (time.time() - start))
 
 
 if __name__ == "__main__":
     start = time.time()
-    sample = "2023-05-24/plasmodesmata_affs_lsds/0"
+    sample = "2023-07-26/plasmodesmata_affs_lsds/0"
     find_segments(
         sample_name=sample,
         db_host="mongodb://microdosingAdmin:Cu2CO3OH2@funke-mongodb2.int.janelia.org:27017",
