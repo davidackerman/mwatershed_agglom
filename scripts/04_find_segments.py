@@ -161,7 +161,7 @@ def segment(nodes, edges, adj_scores, lr_scores, edges_collection, out_dir):
 
 if __name__ == "__main__":
     start = time.time()
-    sample = "2023-07-26/plasmodesmata_affs_lsds/0"
+    sample = "2023-08-17/plasmodesmata_affs_lsds/0"
     find_segments(
         sample_name=sample,
         db_host="mongodb://microdosingAdmin:Cu2CO3OH2@funke-mongodb2.int.janelia.org:27017",

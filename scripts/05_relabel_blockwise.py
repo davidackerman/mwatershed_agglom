@@ -174,7 +174,7 @@ if __name__ == "__main__":
     context = Coordinate(16, 16, 16) * voxel_size
     start = time.time()
 
-    sample = "2023-07-26/plasmodesmata_affs_lsds/0"
+    sample = "2023-08-17/plasmodesmata_affs_lsds/0"
     relabel_dataset(
         sample_name=sample,
         fragments_file="/nrs/cellmap/ackermand/predictions/jrc_22ak351-leaf-3m/jrc_22ak351-leaf-3m.n5",
@@ -183,8 +183,8 @@ if __name__ == "__main__":
         db_host="mongodb://microdosingAdmin:Cu2CO3OH2@funke-mongodb2.int.janelia.org:27017",
         db_name="cellmap_postprocessing_ackermand",
         num_workers=300,
-        mask_file="/nrs/cellmap/ackermand/cellmap/leaf-gall/prediction_masks.zarr",
-        mask_dataset="jrc_22ak351-leaf-3m",
+        mask_file=None,#"/nrs/cellmap/ackermand/cellmap/leaf-gall/prediction_masks.zarr",
+        mask_dataset=None,#"jrc_22ak351-leaf-3m",
         drop=True,
         billing="cellmap",
     )
