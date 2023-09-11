@@ -232,12 +232,13 @@ if __name__ == "__main__":
     context = Coordinate(16, 16, 16) * voxel_size
     start = time.time()
 
-    sample = "2023-08-17/plasmodesmata_affs_lsds/0"
+    dataset = "jrc_mus-kidney-glomerulus-2"
+    sample = "2023-09-06/nuclear_pores_affs_lsds/0"
     extract_fragments(
         sample_name=sample,
-        affs_file="/nrs/cellmap/ackermand/predictions/jrc_22ak351-leaf-3m/jrc_22ak351-leaf-3m.n5",
+        affs_file=f"/nrs/cellmap/ackermand/predictions/{dataset}/{dataset}.n5",
         affs_dataset=f"predictions/{sample}__affs",
-        fragments_file="/nrs/cellmap/ackermand/predictions/jrc_22ak351-leaf-3m/jrc_22ak351-leaf-3m.n5",
+        fragments_file=f"/nrs/cellmap/ackermand/predictions/{dataset}/{dataset}.n5",
         fragments_dataset=f"processed/{sample}/fragments",
         block_size=tuple(block_size),
         context=tuple(context),

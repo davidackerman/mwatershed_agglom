@@ -161,12 +161,13 @@ def segment(nodes, edges, adj_scores, lr_scores, edges_collection, out_dir):
 
 if __name__ == "__main__":
     start = time.time()
-    sample = "2023-08-17/plasmodesmata_affs_lsds/0"
+    dataset = "jrc_mus-kidney-glomerulus-2"
+    sample = "2023-09-06/nuclear_pores_affs_lsds/0"
     find_segments(
         sample_name=sample,
         db_host="mongodb://microdosingAdmin:Cu2CO3OH2@funke-mongodb2.int.janelia.org:27017",
         db_name="cellmap_postprocessing_ackermand",
-        fragments_file="/nrs/cellmap/ackermand/predictions/jrc_22ak351-leaf-3m/jrc_22ak351-leaf-3m.n5",
+        fragments_file=f"/nrs/cellmap/ackermand/predictions/{dataset}/{dataset}.n5",
         fragments_dataset=f"processed/{sample}/fragments",
         edges_collection=f"{sample}_edges_mwatershed",
     )
